@@ -1,10 +1,8 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CodeAnalysis.Scripting;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
+using CSScriptLibrary;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Shapes;
 using MigraDoc.DocumentObjectModel.Tables;
@@ -14,11 +12,6 @@ namespace DotPDF
 {
     public class DocumentBuilder : DocumentBuilder<DocumentBuilder.Globals>
     {
-        public DocumentBuilder(params string[] imports)
-            : base(imports)
-        {
-        }
-
         public class Globals : IGlobals
         {
             public dynamic Obj { get; set; }
@@ -46,21 +39,7 @@ namespace DotPDF
     public class DocumentBuilder<T> where T : class, IGlobals, new()
     {
         private readonly T _globals = new T();
-        private ScriptState<object> _state;
-        private readonly ScriptOptions _options;
-        private readonly MethodInfo _setPropertyMethod;
-
-        private readonly Dictionary<string, object> _compiledDelegates = new Dictionary<string, object>();
-
-        public DocumentBuilder(params string[] imports)
-        {
-            _setPropertyMethod = GetType().GetMethod("SetProperty", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
-
-            _options = ScriptOptions.Default.AddReferences(typeof(Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo).Assembly, typeof(JObject).Assembly);
-            _options = _options.AddImports(imports);
-            var script = CSharpScript.Create(string.Empty, _options, typeof(T));
-            _state = script.RunAsync(_globals).Result;
-        }
+        private readonly Dictionary<Tuple<string, Type>, Delegate> _dictionary = new Dictionary<Tuple<string, Type>, Delegate>();
 
         public PdfDocumentRenderer GetDocumentRenderer(dynamic obj, string templateJson)
         {
@@ -71,7 +50,7 @@ namespace DotPDF
             return pdfRenderer;
         }
 
-        private Document CreateDocument(dynamic obj, string templateJson)
+        private Document CreateDocument(JToken obj, string templateJson)
         {
             var template = JObject.Parse(templateJson);
             var pdfDocument = new Document();
@@ -91,7 +70,7 @@ namespace DotPDF
 
             if (obj.Type == JTokenType.Array)
             {
-                _globals.Array = obj;
+                _globals.Array = (JArray) obj;
                 foreach (var e in obj)
                 {
                     _globals.Obj = e;
@@ -256,8 +235,6 @@ namespace DotPDF
             SetDefaultProperties(table, child);
         }
 
-        private readonly Dictionary<Tuple<string, Type>, Delegate> _dictionary = new Dictionary<Tuple<string, Type>, Delegate>();
-
         protected void SetProperty<TParent>(TParent parent, JProperty property)
         {
             var objProperty = parent.GetType().GetProperty(property.Name);
@@ -265,10 +242,9 @@ namespace DotPDF
             {
                 if (property.Value.Type == JTokenType.Object)
                 {
-                    var subParent = objProperty.GetValue(parent);
-                    var genericSubMethod = _setPropertyMethod.MakeGenericMethod(subParent.GetType());
+                    var value = objProperty.GetValue(parent);
                     foreach (var subProperty in ((JObject)property.Value).Properties())
-                        genericSubMethod.Invoke(this, new[] { subParent, subProperty });
+                        SetProperty(value, subProperty);
                 }
                 else if (objProperty.PropertyType == typeof(Unit))
                 {
@@ -351,7 +327,7 @@ namespace DotPDF
                     genericDel(parent, LeftPosition.Parse((string)property.Value));
                 }
                 else
-                    throw new NotImplementedException("Unknown property type: " + objProperty.PropertyType);
+                    throw new NotSupportedException($"Unknown property type: {objProperty.PropertyType}");
             }
             else
             {
@@ -390,22 +366,11 @@ namespace DotPDF
             return "base64:" + Convert.ToBase64String(image);
         }
 
-        private TValue Compile<TValue>(string code)
+        private T Compile<T>(string code)
         {
-            ScriptRunner<object> runner;
-
-            if (_compiledDelegates.ContainsKey(code))
-                runner = (ScriptRunner<object>)_compiledDelegates[code];
-            else
-            {
-                var script = CSharpScript.Create<object>(code, globalsType: _globals.GetType(), options: _options);
-                runner = script.CreateDelegate();
-                _compiledDelegates.Add(code, runner);
-            }
-
-            return (TValue)runner(_globals).Result;
+            var script = CSScript.Evaluator.CreateDelegate(code);
+            return (T) script.Invoke(_globals);
         }
-
     }
 
 }
