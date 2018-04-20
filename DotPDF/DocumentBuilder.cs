@@ -340,7 +340,7 @@ namespace DotPDF
 
         private R Compile<R>(string code)
         {
-            var newCode = $"using DotPDF; class Stub {{ public object Eval(Globals globals) {{ return globals.{code}; }} }}";
+            var newCode = $"using DotPDF; class Stub {{ public object Eval(Globals globals) {{ return {code}; }} }}";
             dynamic myClass = CSScript.Evaluator.LoadCode(newCode);
             return (R) myClass.Eval(_globals);
         }

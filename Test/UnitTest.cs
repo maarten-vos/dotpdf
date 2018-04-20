@@ -1,4 +1,5 @@
-﻿using DotPDF;
+﻿using System;
+using DotPDF;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
 using System.IO;
@@ -14,7 +15,7 @@ namespace Test
         public void TestBasicTemplate()
         {
             var templateJson = File.ReadAllText($"{TemplatesDir}basic_template.json");
-            var data = JObject.FromObject(new {Name = "John Smith"});
+            var data = JObject.FromObject(new {Name = "John Smith", Time = DateTime.Now});
 
             var builder = new DocumentBuilder();
 
