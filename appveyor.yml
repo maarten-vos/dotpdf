@@ -7,3 +7,5 @@ branches:
 
 build:
   project: DotPDF
+
+image: Visual Studio 2017
