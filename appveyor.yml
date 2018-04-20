@@ -1,5 +1,7 @@
 version: 1.1.{build}
 
+configuration: Release
+
 branches:
   only:
     - bleeding
@@ -7,17 +9,16 @@ branches:
 
 build:
   project: DotPDF
-  publish_nuget: true
+  verbosity: minimal
 
 image: Visual Studio 2017
 
-configuration: Release
+before_build:
+  - nuget restore
 
 deploy:
   provider: NuGet
   api_key:
-    secure: qHc8xMpwgrrxm3ZYOxDdhspKbfFI/HqgZUM9grSqWBaePRs1zAH002NBZFMOBuo6
-  artifact: dotpdf
-   
-before_build:
-  - nuget restore
+    secure: wfa9m2doR4fOORf5Bi+9hQC5irxYSFhM2VhpWkINwmY1ANAsNF9AVkJP4+Se/qGJ
+  skip_symbols: true
+  artifact: /.*\.nupkg/
