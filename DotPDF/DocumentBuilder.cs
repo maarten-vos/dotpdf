@@ -10,68 +10,43 @@ using MigraDoc.Rendering;
 
 namespace DotPDF
 {
-    public class DocumentBuilder : DocumentBuilder<DocumentBuilder.Globals>
+    public class DocumentBuilder
     {
-        public class Globals : IGlobals
-        {
-            public dynamic Obj { get; set; }
-            public dynamic Item { get; set; }
-            public JArray Array { get; set; }
+        private readonly Globals _globals = new Globals();
 
-            public bool IsEven(JArray array)
-            {
-                return array.IndexOf(Item) % 2 == 0;
-            }
-            
-            public int IndexOf(JArray array, dynamic obj)
-            {
-                for (var i = 0; i < array.Count; i++)
-                {
-                    var e = array[i];
-                    if (e == obj)
-                        return i;
-                }
-                return -1;
-            }
-        }
-    }
-
-    public class DocumentBuilder<T> where T : class, IGlobals, new()
-    {
-        private readonly T _globals = new T();
         private readonly Dictionary<Tuple<string, Type>, Delegate> _dictionary = new Dictionary<Tuple<string, Type>, Delegate>();
 
-        public PdfDocumentRenderer GetDocumentRenderer(dynamic obj, string templateJson)
+        public PdfDocumentRenderer GetDocumentRenderer(JToken token, string templateJson)
         {
             var pdfRenderer = new PdfDocumentRenderer(true);
-            var document = CreateDocument(obj, templateJson);
+            var document = CreateDocument(token, templateJson);
             pdfRenderer.Document = document;
             pdfRenderer.RenderDocument();
             return pdfRenderer;
         }
 
-        private Document CreateDocument(JToken obj, string templateJson)
+        private Document CreateDocument(JToken token, string templateJson)
         {
             var template = JObject.Parse(templateJson);
             var pdfDocument = new Document();
-            _globals.Obj = obj;
+            _globals.Obj = token;
 
             void Start()
             {
                 var section = pdfDocument.AddSection();
-                var pageSetup = (JObject)template["PageSetup"];
-                var styles = (JObject)template["Styles"];
+                var pageSetup = (JObject)template[Tokens.PageSetup];
+                var styles = (JObject)template[Tokens.Styles];
                 if (styles != null)
                     SetDefaultProperties(pdfDocument.Styles, styles);
                 if (pageSetup != null)
                     SetDefaultProperties(section.PageSetup, pageSetup);
-                ParseChildren(section, (JArray)template["Children"]);
+                ParseChildren(section, (JArray)template[Tokens.Children]);
             }
 
-            if (obj.Type == JTokenType.Array)
+            if (token.Type == JTokenType.Array)
             {
-                _globals.Array = (JArray) obj;
-                foreach (var e in obj)
+                _globals.Array = (JArray) token;
+                foreach (var e in token)
                 {
                     _globals.Obj = e;
                     Start();
@@ -87,43 +62,43 @@ namespace DotPDF
         {
             foreach (var child in children)
             {
-                if (child["Condition"] != null)
-                    if (!Compile<bool>((string)child["Condition"]))
+                if (child[Tokens.Condition] != null)
+                    if (!Compile<bool>((string)child[Tokens.Condition]))
                         continue;
 
-                var loop = child["@Repeat"] != null ? Compile<List<object>>((string)child["@Repeat"]) : new List<object> {_globals.Item};
+                var loop = child[Tokens.Repeat] != null ? Compile<List<object>>((string)child[Tokens.Repeat]) : new List<object> {_globals.Item};
 
-                switch ((string)child["Type"])
+                switch ((string)child[Tokens.Type])
                 {
-                    case "Table":
+                    case Tokens.Table:
                         foreach (var item in loop)
                         {
                             _globals.Item = item;
                             SetTable(obj.AddTable(), (JObject)child);
                         }
                         break;
-                    case "Paragraph":
+                    case Tokens.Paragraph:
                         foreach (var item in loop)
                         {
                             _globals.Item = item;
                             SetDefaultProperties(obj.AddParagraph(), (JObject)child);
                         }
                         break;
-                    case "Footer":
+                    case Tokens.Footer:
                         foreach (var item in loop)
                         {
                             _globals.Item = item;
                             SetTable(obj.Footers.Primary.AddTable(), (JObject)child);
                         }
                         break;
-                    case "Header":
+                    case Tokens.Header:
                         foreach (var item in loop)
                         {
                             _globals.Item = item;
                             SetTable(obj.Headers.Primary.AddTable(), (JObject)child);
                         }
                         break;
-                    case "Image":
+                    case Tokens.Image:
                         foreach (var item in loop)
                         {
                             _globals.Item = item;
@@ -132,28 +107,28 @@ namespace DotPDF
                             SetDefaultProperties(img, (JObject)child);
                         }
                         break;
-                    case "TextFrame":
+                    case Tokens.TextFrame:
                         foreach (var item in loop)
                         {
                             _globals.Item = item;
                             SetDefaultProperties(obj.AddTextFrame(), (JObject)child);
                         }
                         break;
-                    case "FormattedText":
+                    case Tokens.FormattedText:
                         foreach (var item in loop)
                         {
                             _globals.Item = item;
                             SetDefaultProperties(obj.AddFormattedText(), (JObject)child);
                         }
                         break;
-                    case "PageBreak":
+                    case Tokens.PageBreak:
                         foreach (var item in loop)
                         {
                             _globals.Item = item;
                             obj.AddPageBreak();
                         }
                         break;
-                    case "PageField":
+                    case Tokens.PageField:
                         foreach (var item in loop)
                         {
                             _globals.Item = item;
@@ -161,7 +136,7 @@ namespace DotPDF
                         }
                         break;
                     default:
-                        throw new NotImplementedException("Unknown type: " + (string)child["Type"] + "\n\n" + child);
+                        throw new NotImplementedException("Unknown type: " + (string)child[Tokens.Type] + "\n\n" + child);
                 }
             }
         }
@@ -174,27 +149,25 @@ namespace DotPDF
 
         private void SetTable(Table table, JObject child)
         {
-            foreach (var column in child["@Columns"])
+            foreach (var column in child[Tokens.Columns])
             {
-                var c = table.AddColumn();
+                var addColumn = table.AddColumn();
                 foreach (var item in ((JObject)column).Properties())
-                    SetProperty(c, item);
+                    SetProperty(addColumn, item);
             }
-                
-
             var rowIndex = 0;
             var virtualRows = new List<VirtualRow>();
-            foreach (var row in child["@Rows"])
+            foreach (var row in child[Tokens.Rows])
             {
-                if (row["@Repeat"] != null)
+                if (row[Tokens.Repeat] != null)
                 {
-                    var vr = new VirtualRow
+                    var virtualRow = new VirtualRow
                     {
-                        Kids = Compile<IList>((string) row["@Repeat"]),
+                        Items = Compile<IList>((string) row[Tokens.Repeat]),
                         RowIndex = rowIndex
                     };
-                    virtualRows.Add(vr);
-                    foreach (var unused in vr.Kids)
+                    virtualRows.Add(virtualRow);
+                    foreach (var unused in virtualRow.Items)
                     {
                         var parent = table.AddRow();
                         foreach (var item in ((JObject)row).Properties())
@@ -209,25 +182,24 @@ namespace DotPDF
                 }
                 rowIndex++;
             }
-
-            foreach (var cell in child["@Cells"])
+            foreach (var cell in child[Tokens.Cells])
             {
-                var row = (int)cell["@Row"];
-                var vr = virtualRows.Find(v => v.RowIndex == row);
-                if (vr != null)
+                var row = (int)cell[Tokens.Row];
+                var virtualRow = virtualRows.Find(v => v.RowIndex == row);
+                if (virtualRow != null)
                 {
-                    var kids = vr.Kids;
-                    foreach (var kid in kids)
+                    var items = virtualRow.Items;
+                    foreach (var kid in items)
                     {
                         _globals.Item = kid;
                         foreach (var item in ((JObject)cell).Properties())
-                            SetProperty(table[row + kids.IndexOf(kid), (int)cell["@Column"]], item);
+                            SetProperty(table[row + items.IndexOf(kid), (int)cell[Tokens.Column]], item);
                     }
                 }
                 else
                 {
                     foreach (var item in ((JObject)cell).Properties())
-                        SetProperty(table[row, (int)cell["@Column"]], item);
+                        SetProperty(table[row, (int)cell[Tokens.Column]], item);
                 }
 
 
@@ -333,7 +305,7 @@ namespace DotPDF
             {
                 switch (property.Name)
                 {
-                    case "Text":
+                    case Tokens.Text:
                         {
                             dynamic text = parent;
                             var value = (string) property.Value;
@@ -341,7 +313,7 @@ namespace DotPDF
                                 text.AddText(value);
                             break;
                         }
-                    case "@Text":
+                    case Tokens.CompiledText:
                         {
                             dynamic text = parent;
                             var value = Compile<string>((string) property.Value);
@@ -350,12 +322,12 @@ namespace DotPDF
 
                             break;
                         }
-                    case "Children":
+                    case Tokens.Children:
                         ParseChildren(parent, (JArray)property.Value);
                         break;
-                    case "@Color":
-                        var p = parent.GetType().GetProperty(property.Name.Substring(1));
-                        p.SetValue(parent, Color.Parse(Compile<string>((string)property.Value)));
+                    case Tokens.Color:
+                        parent.GetType().GetProperty(property.Name.Substring(1)).SetValue(parent,
+                            Color.Parse(Compile<string>((string) property.Value)));
                         break;
                 }
             }
@@ -366,10 +338,11 @@ namespace DotPDF
             return "base64:" + Convert.ToBase64String(image);
         }
 
-        private T Compile<T>(string code)
+        private R Compile<R>(string code)
         {
-            var script = CSScript.Evaluator.CreateDelegate(code);
-            return (T) script.Invoke(_globals);
+            var newCode = $"using DotPDF; class Stub {{ public object Eval(Globals globals) {{ return globals.{code}; }} }}";
+            dynamic myClass = CSScript.Evaluator.LoadCode(newCode);
+            return (R) myClass.Eval(_globals);
         }
     }
 

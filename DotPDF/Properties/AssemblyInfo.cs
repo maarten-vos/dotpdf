@@ -14,4 +14,4 @@ using System.Runtime.InteropServices;
 [assembly: Guid("e878c481-d2c7-4f55-8b0a-ae8617a43bc7")]
 
 // Major, Minor, Patch
-[assembly: AssemblyVersion("1.0.1")]
+[assembly: AssemblyVersion("1.1.0")]

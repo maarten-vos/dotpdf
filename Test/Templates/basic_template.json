@@ -1,0 +1,13 @@
+﻿{
+  "PageSetup": {
+    "LeftMargin": "1cm",
+    "RightMargin": "1cm",
+    "TopMargin": "1cm"
+  },
+  "Children": [
+    {
+      "Type": "Paragraph",
+      "@Text": "Obj.Name"
+    }
+  ]
+}
