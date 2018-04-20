@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using CSScriptLibrary;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Shapes;
@@ -15,6 +16,13 @@ namespace DotPDF
         private readonly Globals _globals = new Globals();
 
         private readonly Dictionary<Tuple<string, Type>, Delegate> _dictionary = new Dictionary<Tuple<string, Type>, Delegate>();
+
+        private static readonly MethodInfo _setPropertyMethod;
+
+        static DocumentBuilder()
+        {
+            _setPropertyMethod = typeof(DocumentBuilder).GetMethod("SetProperty", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+        }
 
         public PdfDocumentRenderer GetDocumentRenderer(JToken token, string templateJson)
         {
@@ -45,7 +53,7 @@ namespace DotPDF
 
             if (token.Type == JTokenType.Array)
             {
-                _globals.Array = (JArray) token;
+                _globals.Array = (JArray)token;
                 foreach (var e in token)
                 {
                     _globals.Obj = e;
@@ -66,7 +74,7 @@ namespace DotPDF
                     if (!Compile<bool>((string)child[Tokens.Condition]))
                         continue;
 
-                var loop = child[Tokens.Repeat] != null ? Compile<List<object>>((string)child[Tokens.Repeat]) : new List<object> {_globals.Item};
+                var loop = child[Tokens.Repeat] != null ? Compile<List<object>>((string)child[Tokens.Repeat]) : new List<object> { _globals.Item };
 
                 switch ((string)child[Tokens.Type])
                 {
@@ -163,7 +171,7 @@ namespace DotPDF
                 {
                     var virtualRow = new VirtualRow
                     {
-                        Items = Compile<IList>((string) row[Tokens.Repeat]),
+                        Items = Compile<IList>((string)row[Tokens.Repeat]),
                         RowIndex = rowIndex
                     };
                     virtualRows.Add(virtualRow);
@@ -215,8 +223,9 @@ namespace DotPDF
                 if (property.Value.Type == JTokenType.Object)
                 {
                     var value = objProperty.GetValue(parent);
+                    var genericSubMethod = _setPropertyMethod.MakeGenericMethod(value.GetType());
                     foreach (var subProperty in ((JObject)property.Value).Properties())
-                        SetProperty(value, subProperty);
+                        genericSubMethod.Invoke(this, new[] { value, subProperty });
                 }
                 else if (objProperty.PropertyType == typeof(Unit))
                 {
@@ -308,7 +317,7 @@ namespace DotPDF
                     case Tokens.Text:
                         {
                             dynamic text = parent;
-                            var value = (string) property.Value;
+                            var value = (string)property.Value;
                             if (value != null)
                                 text.AddText(value);
                             break;
@@ -316,7 +325,7 @@ namespace DotPDF
                     case Tokens.CompiledText:
                         {
                             dynamic text = parent;
-                            var value = Compile<string>((string) property.Value);
+                            var value = Compile<string>((string)property.Value);
                             if (value != null)
                                 text.AddText(value);
 
@@ -327,7 +336,7 @@ namespace DotPDF
                         break;
                     case Tokens.Color:
                         parent.GetType().GetProperty(property.Name.Substring(1)).SetValue(parent,
-                            Color.Parse(Compile<string>((string) property.Value)));
+                            Color.Parse(Compile<string>((string)property.Value)));
                         break;
                 }
             }
@@ -342,7 +351,7 @@ namespace DotPDF
         {
             var newCode = $"using DotPDF; class Stub {{ public object Eval(Globals globals) {{ return {code}; }} }}";
             dynamic myClass = CSScript.Evaluator.LoadCode(newCode);
-            return (R) myClass.Eval(_globals);
+            return (R)myClass.Eval(_globals);
         }
     }
 
