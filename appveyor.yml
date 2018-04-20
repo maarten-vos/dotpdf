@@ -17,6 +17,7 @@ deploy:
   provider: NuGet
   api_key:
     secure: qHc8xMpwgrrxm3ZYOxDdhspKbfFI/HqgZUM9grSqWBaePRs1zAH002NBZFMOBuo6
-
+  artifact: dotpdf
+   
 before_build:
   - nuget restore
