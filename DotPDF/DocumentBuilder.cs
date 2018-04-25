@@ -15,6 +15,8 @@ namespace DotPDF
     {
         private readonly Globals _globals = new Globals();
 
+        private readonly Dictionary<string, dynamic> _cache = new Dictionary<string, dynamic>();
+
         private readonly Dictionary<Tuple<string, Type>, Delegate> _dictionary = new Dictionary<Tuple<string, Type>, Delegate>();
 
         private static readonly MethodInfo _setPropertyMethod;
@@ -335,8 +337,7 @@ namespace DotPDF
                         ParseChildren(parent, (JArray)property.Value);
                         break;
                     case Tokens.Color:
-                        parent.GetType().GetProperty(property.Name.Substring(1)).SetValue(parent,
-                            Color.Parse(Compile<string>((string)property.Value)));
+                        parent.GetType().GetProperty(property.Name.Substring(1)).SetValue(parent, Color.Parse(Compile<string>((string)property.Value)));
                         break;
                 }
             }
@@ -347,12 +348,15 @@ namespace DotPDF
             return "base64:" + Convert.ToBase64String(image);
         }
 
-        private R Compile<R>(string code)
+        private TR Compile<TR>(string code)
         {
-            var newCode = $"using DotPDF; class Stub {{ public object Eval(Globals globals) {{ return {code}; }} }}";
-            dynamic myClass = CSScript.Evaluator.LoadCode(newCode);
-            return (R)myClass.Eval(_globals);
+            if (!_cache.TryGetValue(code, out var myClass))
+            {
+                var newCode = $"using DotPDF; class Stub {{ public object Eval(Globals globals) {{ var Obj = globals.Obj; var Array = globals.Array; var Item = globals.Item; return {code}; }} }}";
+                _cache[code] = myClass = CSScript.Evaluator.LoadCode(newCode);
+            }
+
+            return (TR)myClass.Eval(_globals);
         }
     }
-
 }
