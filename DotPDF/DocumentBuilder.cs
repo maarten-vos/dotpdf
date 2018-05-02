@@ -337,7 +337,7 @@ namespace DotPDF
                         ParseChildren(parent, (JArray)property.Value);
                         break;
                     case Tokens.Color:
-                        parent.GetType().GetProperty(property.Name.Substring(1)).SetValue(parent, Color.Parse(Compile<string>((string)property.Value)));
+                        parent.GetType().GetProperty("Color").SetValue(parent, Color.Parse((string)property.Value));
                         break;
                 }
             }
