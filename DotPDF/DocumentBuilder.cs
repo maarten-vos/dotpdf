@@ -35,7 +35,7 @@ namespace DotPDF
             return pdfRenderer;
         }
 
-        private Document CreateDocument(JToken token, string templateJson)
+        public Document CreateDocument(JToken token, string templateJson)
         {
             var template = JObject.Parse(templateJson);
             var pdfDocument = new Document();
