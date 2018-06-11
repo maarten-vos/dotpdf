@@ -7,7 +7,7 @@
   "Children": [
     {
       "Type": "Paragraph",
-      "@Text": "\"Hello \" + globals.Obj.Name"
+      "@Text": "\"Hello there, \" + Obj.Name"
     }
   ]
 }
