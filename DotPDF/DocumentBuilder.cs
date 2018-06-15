@@ -8,6 +8,7 @@ using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Shapes;
 using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.Rendering;
+using System.Linq;
 
 namespace DotPDF
 {
@@ -20,6 +21,8 @@ namespace DotPDF
         private readonly Dictionary<Tuple<string, Type>, Delegate> _dictionary = new Dictionary<Tuple<string, Type>, Delegate>();
 
         private static readonly MethodInfo _setPropertyMethod;
+
+        public string[] Imports { get; set; }
 
         static DocumentBuilder()
         {
@@ -143,6 +146,13 @@ namespace DotPDF
                         {
                             _globals.Item = item;
                             obj.AddPageField();
+                        }
+                        break;
+                    case Tokens.NumPagesField:
+                        foreach (var item in loop)
+                        {
+                            _globals.Item = item;
+                            obj.AddNumPagesField();
                         }
                         break;
                     default:
@@ -352,7 +362,9 @@ namespace DotPDF
         {
             if (!_cache.TryGetValue(code, out var myClass))
             {
-                var newCode = $"using DotPDF; class Stub {{ public object Eval(Globals globals) {{ var Obj = globals.Obj; var Array = globals.Array; var Item = globals.Item; return {code}; }} }}";
+                var usings = Imports?.Select(s => $"using {s};");
+                var imports = usings == null ? string.Empty : string.Join(" ", usings);
+                var newCode = $"using DotPDF; {imports} class Stub {{ public object Eval(Globals globals) {{ var Obj = globals.Obj; var Array = globals.Array; var Item = globals.Item; return {code}; }} }}";
                 _cache[code] = myClass = CSScript.Evaluator.LoadCode(newCode);
             }
 

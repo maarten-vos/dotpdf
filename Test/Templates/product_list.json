@@ -1,0 +1,118 @@
+﻿{
+  "PageSetup": {
+    "LeftMargin": "1cm",
+    "RightMargin": "1cm",
+    "TopMargin": "1cm"
+  },
+  "Children": [
+    {
+      "Type": "Paragraph",
+      "Text": "Product List",
+      "Format": {
+        "Font": {
+          "Size": "1cm"
+        }
+      }
+    },
+    {
+      "Type": "Table",
+      "Borders": {
+        "Width": "0.05cm"
+      },
+      "@Columns": [
+        {
+          "Width": "6cm"
+        },
+        {
+          "Width": "6cm"
+        },
+        {
+          "Width": "6cm"
+        }
+      ],
+      "@Rows": [
+        {
+
+        },
+        {
+          "@Repeat": "Obj.Products"
+        },
+        {
+
+        }
+      ],
+      "@Cells": [
+        {
+          "@Row": 0,
+          "@Column": 0,
+          "Children": [
+            {
+              "Type": "Paragraph",
+              "Text": "Description"
+            }
+          ]
+        },
+        {
+          "@Row": 0,
+          "@Column": 1,
+          "Children": [
+            {
+              "Type": "Paragraph",
+              "Text": "Quantity"
+            }
+          ]
+        },
+        {
+          "@Row": 0,
+          "@Column": 2,
+          "Children": [
+            {
+              "Type": "Paragraph",
+              "Text": "Price"
+            }
+          ]
+        },
+        {
+          "@Row": 1,
+          "@Column": 0,
+          "Children": [
+            {
+              "Type": "Paragraph",
+              "@Text": "Item.Description"
+            }
+          ]
+        },
+        {
+          "@Row": 1,
+          "@Column": 1,
+          "Children": [
+            {
+              "Type": "Paragraph",
+              "@Text": "Item.Quantity"
+            }
+          ]
+        },
+        {
+          "@Row": 1,
+          "@Column": 2,
+          "Children": [
+            {
+              "Type": "Paragraph",
+              "@Text": "Item.Price"
+            }
+          ]
+        },
+        {
+          "@Row": 2,
+          "@Column": 2,
+          "Children": [
+            {
+              "Type": "Paragraph",
+              "@Text": "\"Total: \" + Obj.Total"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

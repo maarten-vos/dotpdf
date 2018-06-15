@@ -1,4 +1,4 @@
-# dotpdf 
+# dotpdf [![dotpdf MyGet Build Status](https://www.myget.org/BuildSource/Badge/dotpdf?identifier=0cccd0c6-a15d-4650-9fd8-a11ce5a61875)](https://www.myget.org/)
 *Create PDF documents using templates written in JSON*
 
 Currently there isn't much documentation for dotpdf, but because it uses pdfsharp for document creation its documentation is a good source of information.

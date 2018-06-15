@@ -24,6 +24,7 @@
         public const string FormattedText = nameof(FormattedText);
         public const string PageBreak = nameof(PageBreak);
         public const string PageField = nameof(PageField);
+        public const string NumPagesField = nameof(NumPagesField);
         public const string Text = nameof(Text);
         public const string CompiledText = "@Text";
         public const string Color = "@Color";

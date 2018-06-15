@@ -67,12 +67,12 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="UnitTest.cs" />
+    <Compile Include="ProductList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Templates\basic_template.json" />
+    <None Include="Templates\product_list.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DotPDF\DotPDF.csproj">
