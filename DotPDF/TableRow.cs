@@ -1,8 +1,9 @@
-﻿using System.Collections;
+﻿using Newtonsoft.Json.Linq;
+using System.Collections;
 
 namespace DotPDF
 {
-    internal class VirtualRow
+    internal class TableRow
     {
         public int RowIndex { get; set; }
         public IList Items { get; set; }

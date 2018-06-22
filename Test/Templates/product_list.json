@@ -32,13 +32,11 @@
       ],
       "@Rows": [
         {
-
         },
         {
-          "@Repeat": "Obj.Products"
+          "ForEach": "Obj.Products"
         },
         {
-
         }
       ],
       "@Cells": [
@@ -78,7 +76,7 @@
           "Children": [
             {
               "Type": "Paragraph",
-              "@Text": "Item.Description"
+              "CompiledText": "(string) Item.Description"
             }
           ]
         },
@@ -88,7 +86,7 @@
           "Children": [
             {
               "Type": "Paragraph",
-              "@Text": "Item.Quantity"
+              "CompiledText": "Item.Quantity"
             }
           ]
         },
@@ -98,7 +96,7 @@
           "Children": [
             {
               "Type": "Paragraph",
-              "@Text": "Item.Price"
+              "CompiledText": "Item.Price"
             }
           ]
         },
@@ -108,7 +106,31 @@
           "Children": [
             {
               "Type": "Paragraph",
-              "@Text": "\"Total: \" + Obj.Total"
+              "CompiledText": "\"Total: \" + Obj.Total"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Type": "Footer",
+      "Children": [
+        {
+          "Type": "Paragraph",
+          "Children": [
+            {
+              "Type": "Paragraph",
+              "Text": "Page "
+            },
+            {
+              "Type": "PageField"
+            },
+            {
+              "Type": "Paragraph",
+              "Text": " of "
+            },
+            {
+              "Type": "NumPagesField"
             }
           ]
         }

@@ -1,14 +1,14 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
-using CSScriptLibrary;
+﻿using CSScriptLibrary;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Shapes;
 using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.Rendering;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace DotPDF
 {
@@ -71,294 +71,280 @@ namespace DotPDF
             return pdfDocument;
         }
 
-        private void ParseChildren(dynamic obj, JArray children)
+        private void ParseChildren(dynamic currentObj, JArray children)
         {
-            foreach (var child in children)
+            foreach (JObject child in children)
             {
                 if (child[Tokens.Condition] != null)
                     if (!Compile<bool>((string)child[Tokens.Condition]))
                         continue;
 
-                var loop = child[Tokens.Repeat] != null ? Compile<List<object>>((string)child[Tokens.Repeat]) : new List<object> { _globals.Item };
+                var forEach = child[Tokens.LegacyRepeat] ?? child[Tokens.ForEach];
 
-                switch ((string)child[Tokens.Type])
+                var items = forEach != null
+                    ? Compile<List<object>>((string)forEach)
+                    : new List<object> { _globals.Item };
+
+                foreach (var item in items)
                 {
-                    case Tokens.Table:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
-                            SetTable(obj.AddTable(), (JObject)child);
-                        }
-                        break;
-                    case Tokens.Paragraph:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
-                            SetDefaultProperties(obj.AddParagraph(), (JObject)child);
-                        }
-                        break;
-                    case Tokens.Footer:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
-                            SetTable(obj.Footers.Primary.AddTable(), (JObject)child);
-                        }
-                        break;
-                    case Tokens.Header:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
-                            SetTable(obj.Headers.Primary.AddTable(), (JObject)child);
-                        }
-                        break;
-                    case Tokens.Image:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
+                    _globals.Item = item;
+                    switch ((string)child[Tokens.Type])
+                    {
+                        case Tokens.Table:
+                            SetTable(currentObj.AddTable(), child);
+                            break;
+                        case Tokens.Paragraph:
+                            if (currentObj is Paragraph)
+                                SetDefaultProperties(currentObj, child);
+                            else
+                                SetDefaultProperties(currentObj.AddParagraph(), child);
+                            break;
+                        case Tokens.Footer:
+                            SetDefaultProperties(((Section)currentObj).Footers.Primary, child);
+                            break;
+                        case Tokens.Header:
+                            SetDefaultProperties(((Section)currentObj).Headers.Primary, child);
+                            break;
+                        case Tokens.Image:
                             var source = (string)child["Source"];
-                            var img = obj.AddImage(source.StartsWith("base64:") ? source : ImageToBase64(Compile<byte[]>((string)child["Source"])));
-                            SetDefaultProperties(img, (JObject)child);
-                        }
-                        break;
-                    case Tokens.TextFrame:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
-                            SetDefaultProperties(obj.AddTextFrame(), (JObject)child);
-                        }
-                        break;
-                    case Tokens.FormattedText:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
-                            SetDefaultProperties(obj.AddFormattedText(), (JObject)child);
-                        }
-                        break;
-                    case Tokens.PageBreak:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
-                            obj.AddPageBreak();
-                        }
-                        break;
-                    case Tokens.PageField:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
-                            obj.AddPageField();
-                        }
-                        break;
-                    case Tokens.NumPagesField:
-                        foreach (var item in loop)
-                        {
-                            _globals.Item = item;
-                            obj.AddNumPagesField();
-                        }
-                        break;
-                    default:
-                        throw new NotImplementedException("Unknown type: " + (string)child[Tokens.Type] + "\n\n" + child);
+                            var imageData = source.StartsWith("base64:")
+                                ? source
+                                : ImageToBase64(Compile<byte[]>((string)child["Source"]));
+
+                            var image = currentObj.AddImage();
+                            SetDefaultProperties(image, child);
+                            break;
+                        case Tokens.TextFrame:
+                            SetDefaultProperties(currentObj.AddTextFrame(), child);
+                            break;
+                        case Tokens.FormattedText:
+                            SetDefaultProperties(currentObj.AddFormattedText(), child);
+                            break;
+                        case Tokens.PageBreak:
+                            currentObj.AddPageBreak();
+                            break;
+                        case Tokens.PageField:
+                            currentObj.AddPageField();
+                            break;
+                        case Tokens.NumPagesField:
+                            currentObj.AddNumPagesField();
+                            break;
+                        default:
+                            throw new NotSupportedException($"Unknown type: {(string)child[Tokens.Type]} \n\n {child}");
+                    }
                 }
+
             }
         }
 
-        private void SetDefaultProperties<TParent>(TParent obj, JObject child)
+        private void SetDefaultProperties<T>(T parent, JObject child)
         {
             foreach (var item in child.Properties())
-                SetProperty(obj, item);
+                SetProperty(parent, item);
         }
 
         private void SetTable(Table table, JObject child)
         {
-            foreach (var column in child[Tokens.Columns])
-            {
-                var addColumn = table.AddColumn();
-                foreach (var item in ((JObject)column).Properties())
-                    SetProperty(addColumn, item);
-            }
+            foreach (JObject column in child[Tokens.Columns])
+                SetDefaultProperties(table.AddColumn(), column);
+
             var rowIndex = 0;
-            var virtualRows = new List<VirtualRow>();
-            foreach (var row in child[Tokens.Rows])
+            var tableRows = new List<TableRow>();
+            foreach (JObject row in child[Tokens.Rows])
             {
-                if (row[Tokens.Repeat] != null)
+                var forEach = row[Tokens.LegacyRepeat] ?? row[Tokens.ForEach];
+                if (forEach != null)
                 {
-                    var virtualRow = new VirtualRow
+                    var tableRow = new TableRow
                     {
-                        Items = Compile<IList>((string)row[Tokens.Repeat]),
+                        Items = Compile<IList>((string)forEach),
                         RowIndex = rowIndex
                     };
-                    virtualRows.Add(virtualRow);
-                    foreach (var unused in virtualRow.Items)
-                    {
-                        var parent = table.AddRow();
-                        foreach (var item in ((JObject)row).Properties())
-                            SetProperty(parent, item);
-                    }
+                    tableRows.Add(tableRow);
+                    foreach (var item in tableRow.Items)
+                        SetDefaultProperties(table.AddRow(), row);
                 }
                 else
-                {
-                    var parent = table.AddRow();
-                    foreach (var item in ((JObject)row).Properties())
-                        SetProperty(parent, item);
-                }
+                    SetDefaultProperties(table.AddRow(), row);
+
                 rowIndex++;
             }
-            foreach (var cell in child[Tokens.Cells])
+
+            foreach (JObject cell in child[Tokens.Cells])
             {
-                var row = (int)cell[Tokens.Row];
-                var virtualRow = virtualRows.Find(v => v.RowIndex == row);
-                if (virtualRow != null)
+                var rowId = (int)cell[Tokens.Row];
+                var tableRow = tableRows.FirstOrDefault(v => v.RowIndex == rowId);
+                if (tableRow != null)
                 {
-                    var items = virtualRow.Items;
-                    foreach (var kid in items)
+                    foreach (var item in tableRow.Items)
                     {
-                        _globals.Item = kid;
-                        foreach (var item in ((JObject)cell).Properties())
-                            SetProperty(table[row + items.IndexOf(kid), (int)cell[Tokens.Column]], item);
+                        _globals.Item = item;
+                        SetDefaultProperties(table[rowId + tableRow.Items.IndexOf(item), (int)cell[Tokens.Column]], cell);
                     }
                 }
                 else
-                {
-                    foreach (var item in ((JObject)cell).Properties())
-                        SetProperty(table[row, (int)cell[Tokens.Column]], item);
-                }
+                    SetDefaultProperties(table[rowId, (int)cell[Tokens.Column]], cell);
 
 
             }
             SetDefaultProperties(table, child);
         }
 
-        protected void SetProperty<TParent>(TParent parent, JProperty property)
+        protected void SetProperty<T>(T parent, JProperty property)
         {
-            var objProperty = parent.GetType().GetProperty(property.Name);
-            if (objProperty != null)
+            switch (property.Name)
             {
-                if (property.Value.Type == JTokenType.Object)
-                {
-                    var value = objProperty.GetValue(parent);
-                    var genericSubMethod = _setPropertyMethod.MakeGenericMethod(value.GetType());
-                    foreach (var subProperty in ((JObject)property.Value).Properties())
-                        genericSubMethod.Invoke(this, new[] { value, subProperty });
-                }
-                else if (objProperty.PropertyType == typeof(Unit))
-                {
-                    var key = Tuple.Create(property.Name, typeof(TParent));
-                    if (!_dictionary.TryGetValue(key, out var del))
+                case Tokens.Cells:
+                case Tokens.Rows:
+                case Tokens.Columns:
+                case Tokens.Condition:
+                case Tokens.Column:
+                case Tokens.Row:
+                case Tokens.ForEach:
+                case Tokens.Type:
+                    break;
+
+                case Tokens.Text:
                     {
-                        var newDel = (Action<TParent, Unit>)Delegate.CreateDelegate(typeof(Action<TParent, Unit>), objProperty.GetSetMethod());
-                        _dictionary.Add(key, newDel);
-                        del = newDel;
+                        dynamic text = parent;
+                        var value = (string)property.Value;
+                        if (value != null)
+                            text.AddText(value);
+                        break;
                     }
-
-                    var genericDel = (Action<TParent, Unit>)del;
-                    genericDel(parent, Unit.Parse((string)property.Value));
-                }
-                else if (objProperty.PropertyType == typeof(string))
-                {
-                    var key = Tuple.Create(property.Name, typeof(TParent));
-                    if (!_dictionary.TryGetValue(key, out var del))
+                case Tokens.CompiledText:
+                case Tokens.LegacyCompiledText:
                     {
-                        var newDel = (Action<TParent, string>)Delegate.CreateDelegate(typeof(Action<TParent, string>), objProperty.GetSetMethod());
-                        _dictionary.Add(key, newDel);
-                        del = newDel;
-                    }
+                        dynamic text = parent;
+                        var value = Compile<string>((string)property.Value);
+                        if (value != null)
+                            text.AddText(value);
 
-                    var genericDel = (Action<TParent, string>)del;
-                    genericDel(parent, (string)property.Value);
-                }
-                else if (objProperty.PropertyType == typeof(bool))
-                {
-                    var key = Tuple.Create(property.Name, typeof(TParent));
-                    if (!_dictionary.TryGetValue(key, out var del))
+                        break;
+                    }
+                case Tokens.Children:
                     {
-                        var newDel = (Action<TParent, bool>)Delegate.CreateDelegate(typeof(Action<TParent, bool>), objProperty.GetSetMethod());
-                        _dictionary.Add(key, newDel);
-                        del = newDel;
-                    }
-
-                    var genericDel = (Action<TParent, bool>)del;
-                    genericDel(parent, (bool)property.Value);
-                }
-                else if (objProperty.PropertyType == typeof(Color))
-                {
-                    var key = Tuple.Create(property.Name, typeof(TParent));
-                    if (!_dictionary.TryGetValue(key, out var del))
-                    {
-                        var newDel = (Action<TParent, Color>)Delegate.CreateDelegate(typeof(Action<TParent, Color>), objProperty.GetSetMethod());
-                        _dictionary.Add(key, newDel);
-                        del = newDel;
-                    }
-
-                    var genericDel = (Action<TParent, Color>)del;
-                    genericDel(parent, Color.Parse((string)property.Value));
-                }
-                else if (objProperty.PropertyType.IsEnum)
-                    objProperty.SetValue(parent, Enum.Parse(objProperty.PropertyType, (string)property.Value));
-                else if (objProperty.PropertyType == typeof(TopPosition))
-                {
-                    var key = Tuple.Create(property.Name, typeof(TParent));
-                    if (!_dictionary.TryGetValue(key, out var del))
-                    {
-                        var newDel = (Action<TParent, TopPosition>)Delegate.CreateDelegate(typeof(Action<TParent, TopPosition>), objProperty.GetSetMethod());
-                        _dictionary.Add(key, newDel);
-                        del = newDel;
-                    }
-
-                    var genericDel = (Action<TParent, TopPosition>)del;
-                    genericDel(parent, TopPosition.Parse((string)property.Value));
-                }
-                else if (objProperty.PropertyType == typeof(LeftPosition))
-                {
-                    var key = Tuple.Create(property.Name, typeof(TParent));
-                    if (!_dictionary.TryGetValue(key, out var del))
-                    {
-                        var newDel = (Action<TParent, LeftPosition>)Delegate.CreateDelegate(typeof(Action<TParent, LeftPosition>), objProperty.GetSetMethod());
-                        _dictionary.Add(key, newDel);
-                        del = newDel;
-                    }
-
-                    var genericDel = (Action<TParent, LeftPosition>)del;
-                    genericDel(parent, LeftPosition.Parse((string)property.Value));
-                }
-                else
-                    throw new NotSupportedException($"Unknown property type: {objProperty.PropertyType}");
-            }
-            else
-            {
-                switch (property.Name)
-                {
-                    case Tokens.Text:
-                        {
-                            dynamic text = parent;
-                            var value = (string)property.Value;
-                            if (value != null)
-                                text.AddText(value);
-                            break;
-                        }
-                    case Tokens.CompiledText:
-                        {
-                            dynamic text = parent;
-                            var value = Compile<string>((string)property.Value);
-                            if (value != null)
-                                text.AddText(value);
-
-                            break;
-                        }
-                    case Tokens.Children:
                         ParseChildren(parent, (JArray)property.Value);
                         break;
-                    case Tokens.Color:
-                        parent.GetType().GetProperty("Color").SetValue(parent, Color.Parse((string)property.Value));
+                    }
+                case Tokens.Color:
+                case Tokens.LegacyColor:
+                    {
+                        var color = Color.Parse((string)property.Value);
+                        parent.GetType()
+                            .GetProperty(Tokens.Color)
+                            .SetValue(parent, color);
                         break;
-                }
+                    }
+                default:
+                    {
+                        var info = parent.GetType().GetProperty(property.Name)
+                            ?? throw new NotSupportedException($"Invalid property: {property.Name}");
+
+                        SetPdfSharpProperty(parent, info, property);
+                        break;
+                    }
             }
+
+        }
+
+        private void SetPdfSharpProperty<T>(T parent, PropertyInfo info, JProperty property)
+        {
+            if (property.Value.Type == JTokenType.Object)
+            {
+                var value = info.GetValue(parent);
+                var genericSubMethod = _setPropertyMethod.MakeGenericMethod(value.GetType());
+                foreach (var subProperty in ((JObject)property.Value).Properties())
+                    genericSubMethod.Invoke(this, new[] { value, subProperty });
+            }
+            else if (info.PropertyType.IsEnum)
+                info.SetValue(parent, Enum.Parse(info.PropertyType, (string)property.Value));
+            else if (info.PropertyType == typeof(Unit))
+            {
+                var key = Tuple.Create(property.Name, typeof(T));
+                if (!_dictionary.TryGetValue(key, out var del))
+                {
+                    var newDel = (Action<T, Unit>)Delegate.CreateDelegate(typeof(Action<T, Unit>), info.GetSetMethod());
+                    _dictionary.Add(key, newDel);
+                    del = newDel;
+                }
+
+                var genericDel = (Action<T, Unit>)del;
+                genericDel(parent, Unit.Parse((string)property.Value));
+            }
+            else if (info.PropertyType == typeof(string))
+            {
+                var key = Tuple.Create(property.Name, typeof(T));
+                if (!_dictionary.TryGetValue(key, out var del))
+                {
+                    var newDel = (Action<T, string>)Delegate.CreateDelegate(typeof(Action<T, string>), info.GetSetMethod());
+                    _dictionary.Add(key, newDel);
+                    del = newDel;
+                }
+
+                var genericDel = (Action<T, string>)del;
+                genericDel(parent, (string)property.Value);
+            }
+            else if (info.PropertyType == typeof(bool))
+            {
+                var key = Tuple.Create(property.Name, typeof(T));
+                if (!_dictionary.TryGetValue(key, out var del))
+                {
+                    var newDel = (Action<T, bool>)Delegate.CreateDelegate(typeof(Action<T, bool>), info.GetSetMethod());
+                    _dictionary.Add(key, newDel);
+                    del = newDel;
+                }
+
+                var genericDel = (Action<T, bool>)del;
+                genericDel(parent, (bool)property.Value);
+            }
+            else if (info.PropertyType == typeof(Color))
+            {
+                var key = Tuple.Create(property.Name, typeof(T));
+                if (!_dictionary.TryGetValue(key, out var del))
+                {
+                    var newDel = (Action<T, Color>)Delegate.CreateDelegate(typeof(Action<T, Color>), info.GetSetMethod());
+                    _dictionary.Add(key, newDel);
+                    del = newDel;
+                }
+
+                var genericDel = (Action<T, Color>)del;
+                genericDel(parent, Color.Parse((string)property.Value));
+            }
+            else if (info.PropertyType == typeof(TopPosition))
+            {
+                var key = Tuple.Create(property.Name, typeof(T));
+                if (!_dictionary.TryGetValue(key, out var del))
+                {
+                    var newDel = (Action<T, TopPosition>)Delegate.CreateDelegate(typeof(Action<T, TopPosition>), info.GetSetMethod());
+                    _dictionary.Add(key, newDel);
+                    del = newDel;
+                }
+
+                var genericDel = (Action<T, TopPosition>)del;
+                genericDel(parent, TopPosition.Parse((string)property.Value));
+            }
+            else if (info.PropertyType == typeof(LeftPosition))
+            {
+                var key = Tuple.Create(property.Name, typeof(T));
+                if (!_dictionary.TryGetValue(key, out var del))
+                {
+                    var newDel = (Action<T, LeftPosition>)Delegate.CreateDelegate(typeof(Action<T, LeftPosition>), info.GetSetMethod());
+                    _dictionary.Add(key, newDel);
+                    del = newDel;
+                }
+
+                var genericDel = (Action<T, LeftPosition>)del;
+                genericDel(parent, LeftPosition.Parse((string)property.Value));
+            }
+            else
+                throw new NotSupportedException($"Unknown property type: {info.PropertyType}");
         }
 
         private static string ImageToBase64(byte[] image)
-        {
-            return "base64:" + Convert.ToBase64String(image);
-        }
+            => $"base64:{Convert.ToBase64String(image)}";
 
-        private TR Compile<TR>(string code)
+        private T Compile<T>(string code)
         {
             if (!_cache.TryGetValue(code, out var myClass))
             {
@@ -368,7 +354,7 @@ namespace DotPDF
                 _cache[code] = myClass = CSScript.Evaluator.LoadCode(newCode);
             }
 
-            return (TR)myClass.Eval(_globals);
+            return (T)myClass.Eval(_globals);
         }
     }
 }

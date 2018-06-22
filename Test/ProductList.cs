@@ -11,11 +11,10 @@ namespace Test
     [TestClass]
     public class ProductList
     {
-
         [TestMethod]
         public void TestProductList()
         {
-            var products = Enumerable.Range(0, 50).Select(n => new
+            var products = Enumerable.Range(0, 100).Select(n => new
             {
                 Description = $"Product {n}",
                 Quantity = 3,
@@ -39,6 +38,5 @@ namespace Test
 
             builder.GetDocumentRenderer(JObject.FromObject(data), templateJson).Save($"./{templateName}.pdf");
         }
-
     }
 }
