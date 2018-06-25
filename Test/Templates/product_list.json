@@ -32,11 +32,19 @@
       ],
       "@Rows": [
         {
+          "Format": {
+            "Font": {
+              "Bold": true
+            }
+          }
         },
         {
           "ForEach": "Obj.Products"
         },
         {
+          "Borders": {
+            "Width": 0
+          }
         }
       ],
       "@Cells": [

@@ -173,19 +173,27 @@ namespace DotPDF
             foreach (JObject cell in child[Tokens.Cells])
             {
                 var rowId = (int)cell[Tokens.Row];
+                var columnId = (int)cell[Tokens.Column];
                 var tableRow = tableRows.FirstOrDefault(v => v.RowIndex == rowId);
                 if (tableRow != null)
                 {
                     foreach (var item in tableRow.Items)
                     {
                         _globals.Item = item;
-                        SetDefaultProperties(table[rowId + tableRow.Items.IndexOf(item), (int)cell[Tokens.Column]], cell);
+                        SetDefaultProperties(table[rowId + tableRow.Items.IndexOf(item), columnId], cell);
                     }
                 }
                 else
+                {
+                    var lastTableRow = tableRows.Where(tr => tr.RowIndex < rowId)
+                        .OrderByDescending(tr => tr.RowIndex)
+                        .FirstOrDefault();
+
+                    if (lastTableRow != null)
+                        rowId += (lastTableRow.Items.Count - 1);
+
                     SetDefaultProperties(table[rowId, (int)cell[Tokens.Column]], cell);
-
-
+                }
             }
             SetDefaultProperties(table, child);
         }
@@ -238,18 +246,18 @@ namespace DotPDF
                     }
                 default:
                     {
-                        var info = parent.GetType().GetProperty(property.Name)
-                            ?? throw new NotSupportedException($"Invalid property: {property.Name}");
-
-                        SetPdfSharpProperty(parent, info, property);
+                        SetPdfSharpProperty(parent, property);
                         break;
                     }
             }
 
         }
 
-        private void SetPdfSharpProperty<T>(T parent, PropertyInfo info, JProperty property)
+        private void SetPdfSharpProperty<T>(T parent, JProperty property)
         {
+            var info = parent.GetType().GetProperty(property.Name) 
+                ?? throw new NotSupportedException($"Invalid property: {property.Name}");
+
             if (property.Value.Type == JTokenType.Object)
             {
                 var value = info.GetValue(parent);
