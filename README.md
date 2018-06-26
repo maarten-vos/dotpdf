@@ -22,10 +22,10 @@ First you need a template, here's a basic one as an example:
     "RightMargin": "1cm",
     "TopMargin": "1cm"
   },
-  "Children": [
+  "#Children": [
     {
-      "Type": "Paragraph",
-      "@Text": "\"Hello, \" + Obj.Name"
+      "#Type": "Paragraph",
+      "#CompiledText": "\"Hello, \" + Obj.Name"
     }
   ]
 }
