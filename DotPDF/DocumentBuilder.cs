@@ -53,7 +53,9 @@ namespace DotPDF
                     SetDefaultProperties(pdfDocument.Styles, styles);
                 if (pageSetup != null)
                     SetDefaultProperties(section.PageSetup, pageSetup);
-                ParseChildren(section, (JArray)template[Tokens.Children]);
+
+                var children = template[Tokens.LegacyChildren] ?? template[Tokens.Children];
+                ParseChildren(section, (JArray)children);
             }
 
             if (token.Type == JTokenType.Array)
@@ -75,8 +77,9 @@ namespace DotPDF
         {
             foreach (JObject child in children)
             {
-                if (child[Tokens.Condition] != null)
-                    if (!Compile<bool>((string)child[Tokens.Condition]))
+                var condition = child[Tokens.LegacyCondition] ?? child[Tokens.Condition];
+                if (condition != null)
+                    if (!Compile<bool>((string)condition))
                         continue;
 
                 var forEach = child[Tokens.LegacyRepeat] ?? child[Tokens.ForEach];
@@ -88,7 +91,8 @@ namespace DotPDF
                 foreach (var item in items)
                 {
                     _globals.Item = item;
-                    switch ((string)child[Tokens.Type])
+                    var type = child[Tokens.LegacyType] ?? child[Tokens.Type];
+                    switch ((string)type)
                     {
                         case Tokens.Table:
                             SetTable(currentObj.AddTable(), child);
@@ -130,7 +134,7 @@ namespace DotPDF
                             currentObj.AddNumPagesField();
                             break;
                         default:
-                            throw new NotSupportedException($"Unknown type: {(string)child[Tokens.Type]} \n\n {child}");
+                            throw new NotSupportedException($"Unknown type: {(string)type} \n\n {child}");
                     }
                 }
 
@@ -145,12 +149,14 @@ namespace DotPDF
 
         private void SetTable(Table table, JObject child)
         {
-            foreach (JObject column in child[Tokens.Columns])
+            var columns = child[Tokens.LegacyColumns] ?? child[Tokens.Columns];
+            foreach (JObject column in columns)
                 SetDefaultProperties(table.AddColumn(), column);
 
             var rowIndex = 0;
             var tableRows = new List<TableRow>();
-            foreach (JObject row in child[Tokens.Rows])
+            var rows = child[Tokens.LegacyRows] ?? child[Tokens.Rows];
+            foreach (JObject row in rows)
             {
                 var forEach = row[Tokens.LegacyRepeat] ?? row[Tokens.ForEach];
                 if (forEach != null)
@@ -170,10 +176,12 @@ namespace DotPDF
                 rowIndex++;
             }
 
-            foreach (JObject cell in child[Tokens.Cells])
+            var cells = child[Tokens.LegacyCells] ?? child[Tokens.Cells];
+
+            foreach (JObject cell in cells)
             {
-                var rowId = (int)cell[Tokens.Row];
-                var columnId = (int)cell[Tokens.Column];
+                var rowId = (int)(cell[Tokens.LegacyRow] ?? cell[Tokens.Row]);
+                var columnId = (int)(cell[Tokens.LegacyColumn] ?? cell[Tokens.Column]);
                 var tableRow = tableRows.FirstOrDefault(v => v.RowIndex == rowId);
                 if (tableRow != null)
                 {
@@ -192,7 +200,7 @@ namespace DotPDF
                     if (lastTableRow != null)
                         rowId += (lastTableRow.Items.Count - 1);
 
-                    SetDefaultProperties(table[rowId, (int)cell[Tokens.Column]], cell);
+                    SetDefaultProperties(table[rowId, columnId], cell);
                 }
             }
             SetDefaultProperties(table, child);
@@ -203,16 +211,25 @@ namespace DotPDF
             switch (property.Name)
             {
                 case Tokens.Cells:
+                case Tokens.LegacyCells:
                 case Tokens.Rows:
+                case Tokens.LegacyRows:
                 case Tokens.Columns:
+                case Tokens.LegacyColumns:
                 case Tokens.Condition:
+                case Tokens.LegacyCondition:
                 case Tokens.Column:
+                case Tokens.LegacyColumn:
                 case Tokens.Row:
+                case Tokens.LegacyRow:
                 case Tokens.ForEach:
+                case Tokens.LegacyRepeat:
                 case Tokens.Type:
+                case Tokens.LegacyType:
                     break;
 
                 case Tokens.Text:
+                case Tokens.LegacyText:
                     {
                         dynamic text = parent;
                         var value = (string)property.Value;
@@ -231,6 +248,7 @@ namespace DotPDF
                         break;
                     }
                 case Tokens.Children:
+                case Tokens.LegacyChildren:
                     {
                         ParseChildren(parent, (JArray)property.Value);
                         break;

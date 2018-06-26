@@ -4,10 +4,10 @@
     "RightMargin": "1cm",
     "TopMargin": "1cm"
   },
-  "Children": [
+  "#Children": [
     {
-      "Type": "Paragraph",
-      "Text": "Product List",
+      "#Type": "Paragraph",
+      "#Text": "Product List",
       "Format": {
         "Font": {
           "Size": "1cm"
@@ -15,11 +15,11 @@
       }
     },
     {
-      "Type": "Table",
+      "#Type": "Table",
       "Borders": {
         "Width": "0.05cm"
       },
-      "@Columns": [
+      "#Columns": [
         {
           "Width": "6cm"
         },
@@ -30,7 +30,7 @@
           "Width": "6cm"
         }
       ],
-      "@Rows": [
+      "#Rows": [
         {
           "Format": {
             "Font": {
@@ -39,7 +39,7 @@
           }
         },
         {
-          "ForEach": "Obj.Products"
+          "#ForEach": "Obj.Products"
         },
         {
           "Borders": {
@@ -47,98 +47,98 @@
           }
         }
       ],
-      "@Cells": [
+      "#Cells": [
         {
-          "@Row": 0,
-          "@Column": 0,
-          "Children": [
+          "#Row": 0,
+          "#Column": 0,
+          "#Children": [
             {
-              "Type": "Paragraph",
-              "Text": "Description"
+              "#Type": "Paragraph",
+              "#Text": "Description"
             }
           ]
         },
         {
-          "@Row": 0,
-          "@Column": 1,
-          "Children": [
+          "#Row": 0,
+          "#Column": 1,
+          "#Children": [
             {
-              "Type": "Paragraph",
-              "Text": "Quantity"
+              "#Type": "Paragraph",
+              "#Text": "Quantity"
             }
           ]
         },
         {
-          "@Row": 0,
-          "@Column": 2,
-          "Children": [
+          "#Row": 0,
+          "#Column": 2,
+          "#Children": [
             {
-              "Type": "Paragraph",
-              "Text": "Price"
+              "#Type": "Paragraph",
+              "#Text": "Price"
             }
           ]
         },
         {
-          "@Row": 1,
-          "@Column": 0,
-          "Children": [
+          "#Row": 1,
+          "#Column": 0,
+          "#Children": [
             {
-              "Type": "Paragraph",
-              "CompiledText": "(string) Item.Description"
+              "#Type": "Paragraph",
+              "#CompiledText": "(string) Item.Description"
             }
           ]
         },
         {
-          "@Row": 1,
-          "@Column": 1,
-          "Children": [
+          "#Row": 1,
+          "#Column": 1,
+          "#Children": [
             {
-              "Type": "Paragraph",
-              "CompiledText": "Item.Quantity"
+              "#Type": "Paragraph",
+              "#CompiledText": "Item.Quantity"
             }
           ]
         },
         {
-          "@Row": 1,
-          "@Column": 2,
-          "Children": [
+          "#Row": 1,
+          "#Column": 2,
+          "#Children": [
             {
-              "Type": "Paragraph",
-              "CompiledText": "Item.Price"
+              "#Type": "Paragraph",
+              "#CompiledText": "Item.Price"
             }
           ]
         },
         {
-          "@Row": 2,
-          "@Column": 2,
-          "Children": [
+          "#Row": 2,
+          "#Column": 2,
+          "#Children": [
             {
-              "Type": "Paragraph",
-              "CompiledText": "\"Total: \" + Obj.Total"
+              "#Type": "Paragraph",
+              "#CompiledText": "\"Total: \" + Obj.Total"
             }
           ]
         }
       ]
     },
     {
-      "Type": "Footer",
-      "Children": [
+      "#Type": "Footer",
+      "#Children": [
         {
-          "Type": "Paragraph",
-          "Children": [
+          "#Type": "Paragraph",
+          "#Children": [
             {
-              "Type": "Paragraph",
-              "Text": "Page "
+              "#Type": "Paragraph",
+              "#Text": "Page "
             },
             {
-              "Type": "PageField"
+              "#Type": "PageField"
             },
             {
-              "Type": "Paragraph",
-              "Text": " of "
+              "#Type": "Paragraph",
+              "#Text": " of "
             },
             {
-              "Type": "NumPagesField"
+              "#Type": "NumPagesField"
             }
           ]
         }

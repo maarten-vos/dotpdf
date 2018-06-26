@@ -6,7 +6,7 @@
         /// <summary>
         /// A token which is used to define children on objects that support it
         /// </summary>
-        public const string Children = nameof(Children);
+        public const string Children = "#Children";
 
         /// <summary>
         /// Tokens that are used at the root of the object
@@ -17,21 +17,21 @@
         /// <summary>
         /// Tokens that are related to creating tables
         /// </summary>
-        public const string Columns = "@Columns";
-        public const string Rows = "@Rows";
-        public const string Cells = "@Cells";
-        public const string Row = "@Row";
-        public const string Column = "@Column";
+        public const string Columns = "#Columns";
+        public const string Rows = "#Rows";
+        public const string Cells = "#Cells";
+        public const string Row = "#Row";
+        public const string Column = "#Column";
 
         /// <summary>
         /// Tokens that are used as properties
         /// </summary>
-        public const string Condition = nameof(Condition);
-        public const string Type = nameof(Type);
-        public const string Text = nameof(Text);
-        public const string CompiledText = nameof(CompiledText);
-        public const string Color = nameof(Color);
-        public const string ForEach = nameof(ForEach);
+        public const string Condition = "#Condition";
+        public const string Type = "#Type";
+        public const string Text = "#Text";
+        public const string CompiledText = "#CompiledText";
+        public const string Color = "#Color";
+        public const string ForEach = "#ForEach";
 
         /// <summary>
         /// Tokens that define which types you can use
@@ -53,5 +53,14 @@
         public const string LegacyCompiledText = "@Text";
         public const string LegacyColor = "@Color";
         public const string LegacyRepeat = "@Repeat";
+        public const string LegacyChildren = "Children";
+        public const string LegacyCondition = "Condition";
+        public const string LegacyType = "Type";
+        public const string LegacyText = "Text";
+        public const string LegacyColumns = "@Columns";
+        public const string LegacyRows = "@Rows";
+        public const string LegacyCells = "@Cells";
+        public const string LegacyRow = "@Row";
+        public const string LegacyColumn = "@Column";
     }
 }
