@@ -258,7 +258,7 @@ namespace DotPDF
                     {
                         var color = Color.Parse((string)property.Value);
                         parent.GetType()
-                            .GetProperty(Tokens.Color)
+                            .GetProperty("Color")
                             .SetValue(parent, color);
                         break;
                     }
