@@ -114,8 +114,7 @@ namespace DotPDF
                             var imageData = source.StartsWith("base64:")
                                 ? source
                                 : ImageToBase64(Compile<byte[]>((string)child["Source"]));
-
-                            var image = currentObj.AddImage();
+                            var image = currentObj.AddImage(imageData);
                             SetDefaultProperties(image, child);
                             break;
                         case Tokens.TextFrame:
