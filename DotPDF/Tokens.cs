@@ -32,6 +32,7 @@
         public const string CompiledText = "#CompiledText";
         public const string Color = "#Color";
         public const string ForEach = "#ForEach";
+        public const string Source = "#Source";
 
         /// <summary>
         /// Tokens that define which types you can use
@@ -62,5 +63,6 @@
         public const string LegacyCells = "@Cells";
         public const string LegacyRow = "@Row";
         public const string LegacyColumn = "@Column";
+        public const string LegacySource = "Source";
     }
 }

@@ -110,10 +110,10 @@ namespace DotPDF
                             SetDefaultProperties(((Section)currentObj).Headers.Primary, child);
                             break;
                         case Tokens.Image:
-                            var source = (string)child["Source"];
+                            var source = (string)(child[Tokens.Source] ?? child[Tokens.LegacySource]);
                             var imageData = source.StartsWith("base64:")
                                 ? source
-                                : ImageToBase64(Compile<byte[]>((string)child["Source"]));
+                                : ImageToBase64(Compile<byte[]>(source));
                             var image = currentObj.AddImage(imageData);
                             SetDefaultProperties(image, child);
                             break;
@@ -225,6 +225,8 @@ namespace DotPDF
                 case Tokens.LegacyRepeat:
                 case Tokens.Type:
                 case Tokens.LegacyType:
+                case Tokens.LegacySource:
+                case Tokens.Source:
                     break;
 
                 case Tokens.Text:
