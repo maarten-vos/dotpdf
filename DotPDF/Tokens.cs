@@ -47,6 +47,8 @@
         public const string PageBreak = nameof(PageBreak);
         public const string PageField = nameof(PageField);
         public const string NumPagesField = nameof(NumPagesField);
+        public const string Tab = nameof(Tab);
+        public const string LineBreak = nameof(LineBreak);
 
         /// <summary>
         /// Legacy tokens, we advise you no longer use these

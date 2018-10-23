@@ -53,3 +53,5 @@ obj
 packages
 Out
 **/*.csproj.user
+
+*.user
