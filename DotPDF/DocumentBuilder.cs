@@ -132,11 +132,16 @@ namespace DotPDF
                         case Tokens.NumPagesField:
                             currentObj.AddNumPagesField();
                             break;
+                        case Tokens.Tab:
+                            currentObj.AddTab();
+                            break;
+                        case Tokens.LineBreak:
+                            currentObj.AddLineBreak();
+                            break;
                         default:
                             throw new NotSupportedException($"Unknown type: {(string)type} \n\n {child}");
                     }
                 }
-
             }
         }
 
@@ -274,7 +279,7 @@ namespace DotPDF
 
         private void SetPdfSharpProperty<T>(T parent, JProperty property)
         {
-            var info = parent.GetType().GetProperty(property.Name) 
+            var info = parent.GetType().GetProperty(property.Name)
                 ?? throw new NotSupportedException($"Invalid property: {property.Name}");
 
             if (property.Value.Type == JTokenType.Object)
@@ -381,7 +386,12 @@ namespace DotPDF
                 _cache[code] = myClass = CSScript.Evaluator.LoadCode(newCode);
             }
 
-            return (T)myClass.Eval(_globals);
+            var eval = myClass.Eval(_globals);
+            if (eval is JArray array)
+            {
+                return array.ToObject<T>();
+            }
+            return (T)eval;
         }
     }
 }
