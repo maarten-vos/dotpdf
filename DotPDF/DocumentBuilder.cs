@@ -369,6 +369,19 @@ namespace DotPDF
                 var genericDel = (Action<T, LeftPosition>)del;
                 genericDel(parent, LeftPosition.Parse((string)property.Value));
             }
+            else if (info.PropertyType == typeof(int))
+            {
+                var key = Tuple.Create(property.Name, typeof(T));
+                if (!_dictionary.TryGetValue(key, out var del))
+                {
+                    var newDel = (Action<T, int>)Delegate.CreateDelegate(typeof(Action<T, int>), info.GetSetMethod());
+                    _dictionary.Add(key, newDel);
+                    del = newDel;
+                }
+
+                var genericDel = (Action<T, int>)del;
+                genericDel(parent, (int)property.Value);
+            }
             else
                 throw new NotSupportedException($"Unknown property type: {info.PropertyType}");
         }
