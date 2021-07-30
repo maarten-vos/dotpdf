@@ -30,7 +30,7 @@ namespace Test
 
         private void SaveDocument(string templateName, object data)
         {
-            var templateJson = File.ReadAllText($"../../Templates/{templateName}.json");
+            var templateJson = File.ReadAllText($"../../../Templates/{templateName}.json");
             var builder = new DocumentBuilder
             {
                 Imports = new[] { "System.Linq" }

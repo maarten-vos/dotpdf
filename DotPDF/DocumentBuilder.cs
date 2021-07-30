@@ -1,5 +1,4 @@
-﻿using CSScriptLibrary;
-using MigraDoc.DocumentObjectModel;
+﻿using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Shapes;
 using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.Rendering;
@@ -9,6 +8,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+
+#if NET461
+using CSScriptLibrary;
+#else
+using CSScriptLib;
+#endif
 
 namespace DotPDF
 {
@@ -27,6 +32,10 @@ namespace DotPDF
         static DocumentBuilder()
         {
             _setPropertyMethod = typeof(DocumentBuilder).GetMethod("SetProperty", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+
+#if NET5_0_OR_GREATER
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+#endif
         }
 
         public PdfDocumentRenderer GetDocumentRenderer(JToken token, string templateJson)
